@@ -6,7 +6,16 @@ authors = ["Benjamin Fry <benjaminfry@me.com>"]
 # A short blurb about the package. This is not rendered in any format when
 # uploaded to crates.io (aka this is not markdown)
 description = """
+<<<<<<< HEAD
 TRust-DNS is a safe and secure DNS library. This is the resolver library. It uses the Client library to perform all DNS queries.
+=======
+TRust-DNS is a safe and secure DNS client with DNSec support. DNSSec
+ with NSEC validation for negative records, is complete. The client supports
+ dynamic DNS with SIG0 authenticated requests, implementing easy to use high level
+ funtions. TRust-DNS is based on the Tokio and Futures libraries, which means
+ it should be easily integrated into other software that also use those
+ libraries.
+>>>>>>> init resolver
 """
 
 # These URLs point to more information about the repository
