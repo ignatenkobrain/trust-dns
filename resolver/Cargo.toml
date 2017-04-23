@@ -6,12 +6,7 @@ authors = ["Benjamin Fry <benjaminfry@me.com>"]
 # A short blurb about the package. This is not rendered in any format when
 # uploaded to crates.io (aka this is not markdown)
 description = """
-TRust-DNS is a safe and secure DNS client with DNSec support. DNSSec
- with NSEC validation for negative records, is complete. The client supports
- dynamic DNS with SIG0 authenticated requests, implementing easy to use high level
- funtions. TRust-DNS is based on the Tokio and Futures libraries, which means
- it should be easily integrated into other software that also use those
- libraries.
+TRust-DNS is a safe and secure DNS library. This is the resolver library. It uses the Client library to perform all DNS queries.
 """
 
 # These URLs point to more information about the repository
@@ -39,13 +34,7 @@ build = "build.rs"
 
 [badges]
 travis-ci = { repository = "bluejekyll/trust-dns" }
-
-[features]
-default = ["openssl", "tls"]
-tls = ["native-tls", "tokio-tls", "security-framework"]
-
-# WARNING: there is a bug in the mutual tls auth code at the moment see issue #100
-# mtls = ["tls"]
+appveyor = { repository = "bluejekyll/trust-dns", branch = "master", service = "github" }
 
 [lib]
 name = "trust_dns_resolver"
@@ -53,13 +42,3 @@ path = "src/lib.rs"
 
 [dependencies]
 trust-dns = { version = "^0.10", path = "../client" }
-
-[dev-dependencies]
-openssl = "^0.9.7"
-native-tls = "^0.1"
-
-[target.'cfg(target_os = "macos")'.dependencies]
-security-framework = { version = "^0.1.10", optional = true }
-
-[target.'cfg(target_os = "macos")'.dev-dependencies]
-security-framework = "^0.1.10"
