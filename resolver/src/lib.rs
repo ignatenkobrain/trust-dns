@@ -11,7 +11,13 @@
 
 #![deny(missing_docs)]
 
+extern crate futures;
 extern crate trust_dns;
 
-mod resolv_conf;
-pub mod resolver;
+mod config;
+mod resolver;
+
+pub use resolver::Resolver;
+
+/// this exposes a version function which gives access to the access
+include!(concat!(env!("OUT_DIR"), "/version.rs"));
