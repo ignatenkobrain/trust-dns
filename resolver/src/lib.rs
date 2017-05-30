@@ -16,6 +16,8 @@ extern crate trust_dns;
 
 mod config;
 mod resolver;
+mod resolver_future;
+
 
 pub use resolver::Resolver;
 
