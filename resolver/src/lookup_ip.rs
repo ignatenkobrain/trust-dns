@@ -122,7 +122,7 @@ impl Future for LookupIpState {
         let poll;
         match *self {
             LookupIpState::Query(_, ref mut query) => {
-                poll = query.poll().map_err(io::Error::from);
+                poll = query.poll().map_err(|e| e.into());
                 match poll {
                     Ok(Async::NotReady) => {
                         return Ok(Async::NotReady);
