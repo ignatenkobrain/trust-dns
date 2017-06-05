@@ -15,6 +15,7 @@ extern crate futures;
 extern crate trust_dns;
 
 mod config;
+mod lookup_ip;
 mod resolver;
 mod resolver_future;
 

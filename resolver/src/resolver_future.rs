@@ -7,21 +7,11 @@
 
 //! Structs for creating and using a ResolverFuture
 
-use std::collections::HashMap;
-use std::io;
-use std::mem;
-use std::net::{IpAddr, SocketAddr};
-use std::time::Duration;
-
-use futures::{Async, future, Future, Poll};
-use futures::task::park;
-
-use trust_dns::client::{ClientFuture, ClientHandle};
-use trust_dns::error::ClientError;
-use trust_dns::op::{Message, Query};
-use trust_dns::rr::{DNSClass, Name, RData, RecordType};
+use trust_dns::client::ClientHandle;
+use trust_dns::rr::RecordType;
 
 use config::{ResolverConfig, ResolverOpts};
+use lookup_ip::LookupIpFuture;
 
 /// A Recursive Resolver for DNS records.
 pub struct ResolverFuture<C: ClientHandle> {
@@ -41,117 +31,23 @@ impl<C: ClientHandle> ResolverFuture<C> {
     }
 
     /// A basic host name lookup lookup
-    pub fn lookup(&mut self, host: &str) -> Box<Future<Item = Vec<IpAddr>, Error = io::Error>> {
-        let name = match Name::parse(host, None) {
-            Ok(name) => name,
-            Err(err) => return Box::new(future::err(io::Error::from(err))),
-        };
+    pub fn lookup_ip(&mut self, host: &str) -> LookupIpFuture {
 
         // create the lookup
-        let query = LookupIpState::lookup(name, RecordType::A, &mut self.client);
-        Box::new(query)
+        LookupIpFuture::lookup(host, RecordType::A, &mut self.client)
     }
 }
 
-struct LookupHostFuture {
-    future: Box<Future<Item = Vec<IpAddr>, Error = io::Error>>
-}
 
-struct LookupStack(Vec<Query>);
-
-impl LookupStack {
-    // pushes the Query onto the stack, and returns a reference. An error will be returned
-    fn push(&mut self, query: Query) -> io::Result<&Query> {
-        if self.0.contains(&query) {
-            return Err(io::Error::new(io::ErrorKind::Other, "circular CNAME or other recursion"));
-        }
-
-        self.0.push(query);
-        Ok(self.0.last().unwrap())
-    }
-}
-
-enum LookupIpState {
-    Query(RecordType, Box<Future<Item = Message, Error = ClientError>>),
-    Fin(Vec<IpAddr>),
-}
-
-impl LookupIpState {
-    fn lookup<C: ClientHandle>(name: Name, query_type: RecordType, client: &mut C) -> Self {
-        let query_future = client.query(name, DNSClass::IN, query_type);
-        LookupIpState::Query(query_type, query_future)
-    }
-
-    fn transition_query(&mut self, message: &Message) {
-        assert!(if let LookupIpState::Query(_, _) = *self {
-                    true
-                } else {
-                    false
-                });
-
-        // TODO: evaluate all response settings, like truncation, etc.
-        let answers = message
-            .answers()
-            .iter()
-            .filter_map(|r| if let RData::A(ipaddr) = *r.rdata() {
-                            Some(IpAddr::V4(ipaddr))
-                        } else {
-                            None
-                        })
-            .collect();
-
-        mem::replace(self, LookupIpState::Fin(answers));
-    }
-}
-
-impl Future for LookupIpState {
-    type Item = Vec<IpAddr>;
-    type Error = io::Error;
-
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        // first transition any polling that is needed (mutable refs...)
-        let poll;
-        match *self {
-            LookupIpState::Query(_, ref mut query) => {
-                poll = query.poll().map_err(io::Error::from);
-                match poll {
-                    Ok(Async::NotReady) => {
-                        return Ok(Async::NotReady);
-                    }
-                    Ok(Async::Ready(_)) => (), // handled in next match
-                    Err(e) => {
-                        return Err(e);
-                    }
-                }
-            }
-            LookupIpState::Fin(ref mut ips) => {
-                let ips = mem::replace(ips, Vec::<IpAddr>::new());
-                return Ok(Async::Ready(ips));
-            }
-        }
-
-        // getting here means there are Aync::Ready available.
-        match *self {
-            LookupIpState::Query(_, _) => {
-                match poll {
-                    Ok(Async::Ready(ref message)) => self.transition_query(message),
-                    _ => panic!("should have returned earlier"),
-                }
-            }
-            LookupIpState::Fin(_) => panic!("should have returned earlier"),
-        }
-
-        park().unpark(); // yield
-        Ok(Async::NotReady)
-    }
-}
 
 #[cfg(test)]
 mod tests {
     extern crate tokio_core;
 
-    use std::net::{Ipv4Addr, ToSocketAddrs};
+    use futures::Future;
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
     use self::tokio_core::reactor::Core;
+    use trust_dns::client::ClientFuture;
     use trust_dns::udp::UdpClientStream;
 
     use super::*;
@@ -171,11 +67,11 @@ mod tests {
 
         io_loop
             .run(resolver
-                     .lookup("www.example.com.")
-                     .map(move |response| {
+                     .lookup_ip("www.example.com.")
+                     .map(move |mut response| {
                               println!("response records: {:?}", response);
 
-                              let address = response[0];
+                              let address = response.next().expect("no addresses returned");
                               assert_eq!(address, IpAddr::V4(Ipv4Addr::new(93, 184, 216, 34)))
                           })
                      .map_err(|e| {
