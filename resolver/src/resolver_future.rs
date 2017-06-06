@@ -38,8 +38,6 @@ impl<C: ClientHandle> ResolverFuture<C> {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     extern crate tokio_core;

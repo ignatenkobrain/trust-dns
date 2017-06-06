@@ -6,7 +6,6 @@
 // copied, modified, or distributed except according to those terms.
 
 //! Configuration for a resolver
-use std::collections::BTreeSet;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::Duration;
 
