@@ -20,7 +20,7 @@ use ResolverFuture;
 
 /// The result of a Host (basic A or AAAA) query
 pub struct Resolver {
-    resolver_future: RefCell<ResolverFuture<BasicClientHandle>>,
+    resolver_future: RefCell<ResolverFuture>,
     io_loop: RefCell<Core>,
 }
 
@@ -35,17 +35,14 @@ impl Resolver {
     ///
     /// # Returns
     /// A new Resolver
-    pub fn new<CC: ClientConnection>(config: ResolverConfig, options: ResolverOpts, client_connection: CC) -> Self
-where <CC as ClientConnection>::MessageStream: Stream<Item=Vec<u8>, Error=io::Error> + 'static{
-        let (io_loop, stream, stream_handle) = client_connection.unwrap();
+    pub fn new(config: ResolverConfig, options: ResolverOpts) -> io::Result<Self> {
+        let io_loop = Core::new()?;
+        let resolver = ResolverFuture::new(config, options);
 
-        let client = ClientFuture::new(stream, stream_handle, io_loop.handle(), None);
-        let resolver = ResolverFuture::new(config, options, client);
-
-        Resolver {
-            resolver_future: RefCell::new(resolver),
-            io_loop: RefCell::new(io_loop),
-        }
+        Ok(Resolver {
+               resolver_future: RefCell::new(resolver),
+               io_loop: RefCell::new(io_loop),
+           })
     }
 
     /// Performs a DNS lookup for the IP for the given hostname.
