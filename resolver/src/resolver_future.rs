@@ -11,7 +11,7 @@ use trust_dns::client::ClientHandle;
 use trust_dns::rr::RecordType;
 
 use config::{ResolverConfig, ResolverOpts};
-use pool::NameServerPool;
+use name_server_pool::NameServerPool;
 use lookup_ip::LookupIpFuture;
 
 /// A Recursive Resolver for DNS records.
@@ -59,8 +59,7 @@ mod tests {
             .unwrap();
         let (stream, sender) = UdpClientStream::new(addr, io_loop.handle());
         let mut client = ClientFuture::new(stream, sender, io_loop.handle(), None);
-        let mut resolver =
-            ResolverFuture::new(ResolverConfig::default(), ResolverOpts::default(), client);
+        let mut resolver = ResolverFuture::new(ResolverConfig::default(), ResolverOpts::default());
 
         io_loop
             .run(resolver

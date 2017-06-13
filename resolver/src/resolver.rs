@@ -79,7 +79,7 @@ mod tests {
             .next()
             .unwrap();
         let conn = UdpClientConnection::new(addr).unwrap();
-        let mut resolver = Resolver::new(ResolverConfig::default(), ResolverOpts::default(), conn);
+        let mut resolver = Resolver::new(ResolverConfig::default(), ResolverOpts::default()).unwrap();
 
         let mut response = resolver.lookup_ip("www.example.com.").unwrap();
         println!("response records: {:?}", response);
